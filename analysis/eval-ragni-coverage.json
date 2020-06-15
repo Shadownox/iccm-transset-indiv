@@ -1,0 +1,17 @@
+{
+    "type": "coverage",
+	"data.pre_train": "data/ragni2016.csv",
+    "data.test": "data/ragni2016.csv",
+	"corresponding_data": true,
+    "domains": ["syllogistic"],
+    "response_types": ["single-choice"],
+    "models": [
+        "models/mfa/",
+		{"filename": "models/transset/", "override_name" : "TransSet (fit)", "args" : {"individualized" : true}},
+		{"filename": "models/transset/", "override_name" : "TransSet", "args" : {"individualized" : false}},
+        "models/uniform/"
+    ],
+    "domain_encoders": {
+        "syllogistic": "%ccobra%/syllogistic/encoder_syl.py"
+    }
+}
