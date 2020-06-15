@@ -7,7 +7,7 @@
     "response_types": ["single-choice"],
     "models": [
         "models/mfa/",
-		{"filename": "models/transset/", "override_name" : "TransSet (fit)", "args" : {"individualized" : true}},
+		{"filename": "models/transset/", "override_name" : "TransSet (fit)", "args" : {"individualized" : true, "save_params" : true}},
 		{"filename": "models/transset/", "override_name" : "TransSet", "args" : {"individualized" : false}},
         "models/uniform/"
     ],

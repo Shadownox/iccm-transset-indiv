@@ -2,7 +2,6 @@
 
 """
 import ccobra
-import numpy as np
 import os.path
 
 # Constants
@@ -52,7 +51,7 @@ class TransSet(ccobra.CCobraModel):
 
     """
 
-    def __init__(self, name='TransSet', individualized=True):
+    def __init__(self, name='TransSet', individualized=True, save_params=False):
         """ Initializes the TransSet model.
 
         Parameters
@@ -72,6 +71,7 @@ class TransSet(ccobra.CCobraModel):
         super(TransSet, self).__init__(name, ['syllogistic'], ['single-choice'])
         
         self.individualized = individualized
+        self.save_params = save_params
         
         # Parameters (default values as used in the 2019 version)
         self.nvc_aversion = 0.5 # 0 = None, 0.5 = Low, 1 = High
@@ -82,16 +82,22 @@ class TransSet(ccobra.CCobraModel):
         # History (used for storing known responses of the current reasoner)
         self.history = []
         
+        # Param configurations are written to 'param_configs.csv'. The model
+        # is only initialized once by CCOBRA, so we can create the file here.
+        if self.save_params:
+            with open("param_configs.csv", "w") as f:
+                f.write("ID;params\n")
+        
     def pre_train_person(self, person_data):
         # When not using the individualized model, do not use pre_training
         if not self.individualized:
             return
     
         # get a list of parameter configurations best describing person_data
-        best_fits = self.fit_to_history(person_data)
+        self.best_fits = self.fit_to_history(person_data)
         
         # set the parameters of the model
-        best_fit = best_fits[0]
+        best_fit = self.best_fits[0]
         self.nvc_aversion = best_fit[0]
         self.anchor_set = best_fit[1]
         self.particularity_rule = best_fit[2]
@@ -278,3 +284,12 @@ class TransSet(ccobra.CCobraModel):
         # return the decoded prediction
         return syl.decode_response(pred)
 
+    def end_participant(self, subj_id, **kwargs):
+        if not self.save_params:
+            return
+        
+        # write all optimal parameter configuration for this participant
+        # to the param_configs file.
+        with open("param_configs.csv", "a") as f:
+            f.write("{};{}\n"
+                .format(subj_id, self.best_fits))
