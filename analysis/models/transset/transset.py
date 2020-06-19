@@ -284,12 +284,14 @@ class TransSet(ccobra.CCobraModel):
         # return the decoded prediction
         return syl.decode_response(pred)
 
-    def end_participant(self, subj_id, **kwargs):
+    def end_participant(self, subj_id, model_log, **kwargs):
         if not self.save_params:
             return
+
+        model_log["best_fits"] = self.best_fits
         
-        # write all optimal parameter configuration for this participant
-        # to the param_configs file.
-        with open("param_configs.csv", "a") as f:
-            f.write("{};{}\n"
-                .format(subj_id, self.best_fits))
+        best_fit = self.best_fits[0]
+        model_log["nvc_aversion"] = best_fit[0]
+        model_log["anchor_set"] = best_fit[1]
+        model_log["particularity"] = best_fit[2]
+        model_log["negativity"] = best_fit[3]

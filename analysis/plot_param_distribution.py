@@ -1,4 +1,4 @@
-import pandas as pd
+import json
 import numpy as np
 import ccobra
 import matplotlib.pyplot as plt
@@ -6,7 +6,14 @@ import matplotlib.gridspec as gridspec
 import seaborn as sns
 
 # read the param configuration file
-params_df = pd.read_csv("parameterization/param_configs.csv", sep=";")
+params_dict = {}
+with open('parameterization/log_TransSet (fit).json') as json_file:
+    params_dict = json.load(json_file)
+
+if len(params_dict) == 0:
+    print("Parameter information could not be loaded")
+    exit()
+    
 
 # Map for the NVC aversion values
 nvc_aversion_values = {
@@ -41,10 +48,10 @@ negativity_dict = {
 }
 
 # Iterate over the param configs
-for _, row in params_df.iterrows():
-    # re-instantiate configurations
-    params = eval(row["params"])
-    
+for subj_id, params_info in params_dict.items():
+    # extract best param configurations
+    params = params_info["best_fits"]
+
     # iterate over each single param config
     for param_config in params:
         # Count parameter assignments in the storage dictionaries
