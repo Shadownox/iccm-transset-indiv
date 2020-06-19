@@ -59,7 +59,7 @@ class TransSet(ccobra.CCobraModel):
         name : str
             Unique name of the model. Will be used throughout the CCOBRA
             framework as a means for identifying the model.
-        
+
         individualized : bool
             If true, the model adapts to an individual reasoner. Otherwise,
             default parameters are used (the model will behave as reported
@@ -69,40 +69,34 @@ class TransSet(ccobra.CCobraModel):
 
         """
         super(TransSet, self).__init__(name, ['syllogistic'], ['single-choice'])
-        
+
         self.individualized = individualized
         self.save_params = save_params
-        
+
         # Parameters (default values as used in the 2019 version)
         self.nvc_aversion = 0.5 # 0 = None, 0.5 = Low, 1 = High
         self.anchor_set = "first" # first, most-recent
         self.particularity_rule = False
         self.negativity_rule = True
-        
+
         # History (used for storing known responses of the current reasoner)
         self.history = []
-        
-        # Param configurations are written to 'param_configs.csv'. The model
-        # is only initialized once by CCOBRA, so we can create the file here.
-        if self.save_params:
-            with open("param_configs.csv", "w") as f:
-                f.write("ID;params\n")
-        
+
     def pre_train_person(self, person_data):
         # When not using the individualized model, do not use pre_training
         if not self.individualized:
             return
-    
+
         # get a list of parameter configurations best describing person_data
         self.best_fits = self.fit_to_history(person_data)
-        
+
         # set the parameters of the model
         best_fit = self.best_fits[0]
         self.nvc_aversion = best_fit[0]
         self.anchor_set = best_fit[1]
         self.particularity_rule = best_fit[2]
         self.negativity_rule = best_fit[3]
-    
+
     def adapt(self, adapt_item, truth, **optionals):
         # When not using the individualized model, do not adapt
         if not self.individualized:
@@ -113,31 +107,31 @@ class TransSet(ccobra.CCobraModel):
             "response": truth
         }
         self.history.append(history_item)
-        
+
         # retrain the model using the new information
         self.pre_train_person(self.history)
-    
+
     def fit_to_history(self, history):
         if not self.individualized:
-            return [[self.nvc_aversion, 
+            return [[self.nvc_aversion,
                     self.anchor_set,
                     self.particularity_rule,
                     self.negativity_rule]]
-        
+
         best_score = 0
         best_parameters = []
-        
+
         for nvc_aversion in [0, 0.5, 1]:
             for anchor in ["first", "most-recent"]:
                 for particularity_rule in [True, False]:
                     for negativity_rule in [True, False]:
                         score = 0
-                        
+
                         self.nvc_aversion = nvc_aversion
                         self.anchor_set = anchor
                         self.particularity_rule = particularity_rule
                         self.negativity_rule = negativity_rule
-                        
+
                         for task in history:
                             item = task["item"]
                             response = task["response"]
@@ -147,27 +141,27 @@ class TransSet(ccobra.CCobraModel):
                         if score == best_score:
                             best_score = score
                             best_parameters.append([
-                                nvc_aversion, anchor, 
+                                nvc_aversion, anchor,
                                 particularity_rule,
                                 negativity_rule])
                         elif score > best_score:
                             best_score = score
                             best_parameters = []
                             best_parameters.append([
-                                nvc_aversion, anchor, 
+                                nvc_aversion, anchor,
                                 particularity_rule,
                                 negativity_rule])
         return best_parameters
-        
+
     def generate_prediction(self, figure, first, second):
         """ Generates predictions according the the TransSet theory.
 
         """
-        
+
         # DETERMINE THE DIRECTION
-       
-        # Figure 3 and 4: There is no clear path to process a set of As to the 
-        # endpoint of Cs. Therefore, different heuristics are used to find a 
+
+        # Figure 3 and 4: There is no clear path to process a set of As to the
+        # endpoint of Cs. Therefore, different heuristics are used to find a
         # direction. The quantifiers are ranked according to the ability to choose
         # a set with high confidence (therefore all > none > (some/somenot))
         ordering = { 'A' : 3, 'E' : 2, 'I' : 1, 'O' : 1}
@@ -178,8 +172,8 @@ class TransSet(ccobra.CCobraModel):
         # converted to numbers
         nvc_aversion = self.nvc_aversion
 
-        # for figure 3 (where all paths point to B), the side with the 'more 
-        # informative' set is assumed to be the endpoint (e.g., "some A" and "all C", it is 
+        # for figure 3 (where all paths point to B), the side with the 'more
+        # informative' set is assumed to be the endpoint (e.g., "some A" and "all C", it is
         # reasonable to assume that the answer has to be a mapping from A to C, so
         # ac is the direction). For ties: NVC, as it is unclear which set is
         # a subset of the other
@@ -197,9 +191,9 @@ class TransSet(ccobra.CCobraModel):
                 else:
                     return "NVC"
 
-        # figure 4 (all paths start from B) it is the other way round: the 'more 
+        # figure 4 (all paths start from B) it is the other way round: the 'more
         # informative' set determines the starting point. As the premise starts with B, the
-        # more informative set is a natural choice to be filtered by B, before the 
+        # more informative set is a natural choice to be filtered by B, before the
         # second premise is applied.
         if figure == '4':
             if ordering[first] > ordering[second]:
@@ -228,12 +222,12 @@ class TransSet(ccobra.CCobraModel):
         else:
             print("Warning: figure should be 1 or 2, not {}".format(figure))
 
-        # DETERMINE THE QUANTIFIER  
+        # DETERMINE THE QUANTIFIER
 
-        # It is assumed that the confidence in a path depends on the non-negative 
+        # It is assumed that the confidence in a path depends on the non-negative
         # quantifiers. The first premise is more important, as it is used in the
         # second premise to find the answer. therefore, a negative quantifier
-        # in the first premise should increase the likelyhood of NVC more than a 
+        # in the first premise should increase the likelyhood of NVC more than a
         # negative quantifier in the second premise. Especially syllogisms with two
         # negative quantifiers will most likely be considered NVC. This might be
         # prevented by an NVC aversion though.
@@ -246,10 +240,10 @@ class TransSet(ccobra.CCobraModel):
             elif (first in neg_quantifiers) and nvc_aversion == 0:
                 return "NVC"
             # if both quantifiers are negative, the nvc aversion has to be strong to
-            # prevent NVC responses. 
+            # prevent NVC responses.
             elif (first in neg_quantifiers) and (second in neg_quantifiers):
                 return "NVC"
-    
+
         # Some people might use heuristics about the informativeness to determine
         # NVC. If there are two particular quantifiers, they might conclude NVC
         if (first in part_quantifiers) and (second in part_quantifiers) and \
@@ -261,7 +255,7 @@ class TransSet(ccobra.CCobraModel):
         if self.negativity_rule and self.particularity_rule:
             if (first != "A") and (second != "A") and nvc_aversion == 0:
                 return "NVC"
-        
+
         # After this pre-filtering, a combination heuristic is used for the rest
         # atmosphere is best compatible with the set based approach
         quantifier_prediction = atmosphere_predictions(first, second)
@@ -269,18 +263,18 @@ class TransSet(ccobra.CCobraModel):
         # the figure determines the direction
         direction_idx = 0 if (dir == 'ac') else 1
         return quantifier_prediction[direction_idx]
-        
+
     def predict(self, item, **kwargs):
         # Use CCOBRA to obtain the task encoding
         syl = ccobra.syllogistic.Syllogism(item)
         syllogism = syl.encoded_task
-        
+
         # Generate the current prediction
         figure = syllogism[2]
         first = syllogism[0]
         second = syllogism[1]
         pred = self.generate_prediction(figure, first, second)
-        
+
         # return the decoded prediction
         return syl.decode_response(pred)
 
@@ -289,7 +283,7 @@ class TransSet(ccobra.CCobraModel):
             return
 
         model_log["best_fits"] = self.best_fits
-        
+
         best_fit = self.best_fits[0]
         model_log["nvc_aversion"] = best_fit[0]
         model_log["anchor_set"] = best_fit[1]
