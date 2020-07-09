@@ -2,7 +2,7 @@
 
 """
 import ccobra
-import os.path
+import numpy as np
 
 # Constants
 neg_quantifiers = ['E', 'O']
@@ -79,6 +79,10 @@ class TransSet(ccobra.CCobraModel):
         self.particularity_rule = False
         self.negativity_rule = True
 
+        self.best_fit = [self.nvc_aversion, self.anchor_set, 
+                        self.particularity_rule, self.negativity_rule]
+        self.best_fits = [self.best_fit]
+        
         # History (used for storing known responses of the current reasoner)
         self.history = []
 
@@ -91,11 +95,11 @@ class TransSet(ccobra.CCobraModel):
         self.best_fits = self.fit_to_history(person_data)
 
         # set the parameters of the model
-        best_fit = self.best_fits[0]
-        self.nvc_aversion = best_fit[0]
-        self.anchor_set = best_fit[1]
-        self.particularity_rule = best_fit[2]
-        self.negativity_rule = best_fit[3]
+        self.best_fit = self.best_fits[np.random.randint(len(self.best_fits))]
+        self.nvc_aversion = self.best_fit[0]
+        self.anchor_set = self.best_fit[1]
+        self.particularity_rule = self.best_fit[2]
+        self.negativity_rule = self.best_fit[3]
 
     def adapt(self, adapt_item, truth, **optionals):
         # When not using the individualized model, do not adapt
@@ -284,8 +288,7 @@ class TransSet(ccobra.CCobraModel):
 
         model_log["best_fits"] = self.best_fits
 
-        best_fit = self.best_fits[0]
-        model_log["nvc_aversion"] = best_fit[0]
-        model_log["anchor_set"] = best_fit[1]
-        model_log["particularity"] = best_fit[2]
-        model_log["negativity"] = best_fit[3]
+        model_log["nvc_aversion"] = self.best_fit[0]
+        model_log["anchor_set"] = self.best_fit[1]
+        model_log["particularity"] = self.best_fit[2]
+        model_log["negativity"] = self.best_fit[3]
